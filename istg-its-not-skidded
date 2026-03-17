@@ -1,52 +1,58 @@
 -- ╔══════════════════════════════════════════════════╗
--- ║    Bizarre Lineage UI  ·  Rayfield-Compatible    ║
--- ║    Drop-in replacement — only swap loadstring    ║
+-- ║         Cuacker UI  ·  Rayfield-Compatible       ║
+-- ║      White / Pink  ·  Drop-in Replacement        ║
 -- ╚══════════════════════════════════════════════════╝
 
-local Library   = {}
-Library.Flags   = {}
+local Library = {}
+Library.Flags = {}
 
 -- ── Services ────────────────────────────────────────
 local Players      = game:GetService("Players")
 local UIS          = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui      = game:GetService("CoreGui")
-local LP           = Players.LocalPlayer
 
 -- ── Palette ─────────────────────────────────────────
 local C = {
-    Bg         = Color3.fromRGB(12, 12, 18),
-    Sidebar    = Color3.fromRGB(17, 17, 27),
-    SideActive = Color3.fromRGB(34, 29, 62),
-    Card       = Color3.fromRGB(21, 21, 33),
-    Border     = Color3.fromRGB(40, 37, 62),
-    Accent     = Color3.fromRGB(110, 94, 235),
-    AccentDim  = Color3.fromRGB(82, 69, 185),
-    White      = Color3.fromRGB(232, 229, 255),
-    Dim        = Color3.fromRGB(148, 142, 178),
-    Faint      = Color3.fromRGB(72, 68, 100),
-    TogOff     = Color3.fromRGB(44, 42, 66),
-    TogOn      = Color3.fromRGB(110, 94, 235),
-    SliderBg   = Color3.fromRGB(36, 34, 58),
-    KeyBg      = Color3.fromRGB(36, 34, 58),
+    Bg          = Color3.fromRGB(246, 244, 249),
+    Sidebar     = Color3.fromRGB(255, 255, 255),
+    Card        = Color3.fromRGB(255, 255, 255),
+    CardHover   = Color3.fromRGB(253, 243, 249),
+    TextPri     = Color3.fromRGB(26,  18,  34),
+    TextSec     = Color3.fromRGB(128, 108, 140),
+    TextMute    = Color3.fromRGB(192, 178, 205),
+    Accent      = Color3.fromRGB(228,  72, 138),
+    AccentSoft  = Color3.fromRGB(253, 225, 239),
+    AccentMid   = Color3.fromRGB(242, 148, 190),
+    AccentDark  = Color3.fromRGB(198,  52, 112),
+    Border      = Color3.fromRGB(230, 220, 238),
+    TogOff      = Color3.fromRGB(212, 202, 222),
+    TogOn       = Color3.fromRGB(228,  72, 138),
+    SliderBg    = Color3.fromRGB(237, 229, 244),
+    BadgeBg     = Color3.fromRGB(244, 238, 250),
+    MenuBg      = Color3.fromRGB(255, 255, 255),
+    MenuHover   = Color3.fromRGB(253, 225, 239),
+    White       = Color3.fromRGB(255, 255, 255),
+    SideDiv     = Color3.fromRGB(236, 226, 244),
 }
 
--- ── Helpers ─────────────────────────────────────────
-local function tw(obj, props, t)
-    TweenService:Create(obj, TweenInfo.new(t or 0.14, Enum.EasingStyle.Quad), props):Play()
+-- ── Helpers ──────────────────────────────────────────
+local function tw(obj, props, t, style)
+    TweenService:Create(obj,
+        TweenInfo.new(t or 0.14, style or Enum.EasingStyle.Quad), props):Play()
 end
 
-local function corner(n, p)
+local function corner(r, p)
     local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, n)
-    c.Parent = p
+    c.CornerRadius = UDim.new(0, r)
+    c.Parent = p; return c
 end
 
 local function stroke(col, thick, p)
     local s = Instance.new("UIStroke")
     s.Color = col or C.Border
     s.Thickness = thick or 1
-    s.Parent = p
+    s.Parent = p; return s
 end
 
 local function pad(t, r, b, l, p)
@@ -55,542 +61,770 @@ local function pad(t, r, b, l, p)
     u.PaddingRight  = UDim.new(0, r or 0)
     u.PaddingBottom = UDim.new(0, b or 0)
     u.PaddingLeft   = UDim.new(0, l or 0)
-    u.Parent = p
+    u.Parent = p; return u
 end
 
-local function list(spacing, dir, p)
+local function vlist(spacing, p)
     local ul = Instance.new("UIListLayout")
-    ul.Padding = UDim.new(0, spacing or 0)
-    ul.FillDirection = dir or Enum.FillDirection.Vertical
-    ul.SortOrder = Enum.SortOrder.LayoutOrder
-    ul.Parent = p
+    ul.Padding       = UDim.new(0, spacing or 0)
+    ul.FillDirection = Enum.FillDirection.Vertical
+    ul.SortOrder     = Enum.SortOrder.LayoutOrder
+    ul.Parent = p; return ul
 end
 
-local function F(color, size, pos, parent, clip)   -- make Frame
+local function F(color, size, pos, parent, clip)
     local f = Instance.new("Frame")
     f.BackgroundColor3 = color or C.Card
     f.BorderSizePixel  = 0
     f.Size             = size or UDim2.new(1, 0, 0, 32)
-    if pos   then f.Position          = pos  end
-    if clip  then f.ClipsDescendants  = clip end
-    f.Parent = parent
-    return f
+    if pos  then f.Position         = pos  end
+    if clip then f.ClipsDescendants = clip end
+    f.Parent = parent; return f
 end
 
-local function L(text, font, size, color, fsize, pos, xalign, parent, zi)  -- make TextLabel
+local function L(text, font, size, color, fsize, pos, xalign, parent)
     local t = Instance.new("TextLabel")
     t.BackgroundTransparency = 1
     t.BorderSizePixel        = 0
-    t.Text                   = text or ""
+    t.Text                   = text  or ""
     t.Font                   = font  or Enum.Font.GothamMedium
     t.TextSize               = size  or 13
-    t.TextColor3             = color or C.White
+    t.TextColor3             = color or C.TextPri
+    t.RichText               = true
     t.Size                   = fsize or UDim2.new(1, 0, 1, 0)
     t.TextXAlignment         = xalign or Enum.TextXAlignment.Left
     t.TextYAlignment         = Enum.TextYAlignment.Center
     t.TextTruncate           = Enum.TextTruncate.AtEnd
-    if pos  then t.Position = pos  end
-    if zi   then t.ZIndex   = zi   end
-    t.Parent = parent
-    return t
+    if pos then t.Position = pos end
+    t.Parent = parent; return t
+end
+
+-- ── Shadow ──────────────────────────────────────────
+local function shadow(parent, sz)
+    local s = Instance.new("ImageLabel")
+    s.Size                   = UDim2.new(1, sz or 28, 1, sz or 28)
+    s.Position               = UDim2.new(0, -(sz or 28)/2, 0, -(sz or 28)/2 + 3)
+    s.BackgroundTransparency = 1
+    s.Image                  = "rbxassetid://6014261993"
+    s.ImageColor3            = Color3.fromRGB(180, 140, 200)
+    s.ImageTransparency      = 0.55
+    s.ScaleType              = Enum.ScaleType.Slice
+    s.SliceCenter            = Rect.new(49, 49, 450, 450)
+    s.ZIndex                 = parent.ZIndex - 1
+    s.Parent                 = parent
+end
+
+-- ── Context menu ────────────────────────────────────
+local CtxMenu = nil
+local function closeCtx()
+    if CtxMenu then CtxMenu:Destroy(); CtxMenu = nil end
+end
+
+local function showCtx(options, ax, ay)
+    closeCtx()
+    local itemH = 30
+    local menuW = 160
+    local menuH = #options * itemH + 10
+
+    local menu = F(C.MenuBg,
+        UDim2.new(0, menuW, 0, menuH),
+        UDim2.new(0, ax, 0, ay), SGui)
+    menu.ZIndex = 200
+    corner(9, menu)
+    stroke(C.Border, 1, menu)
+    shadow(menu, 18)
+    pad(5, 5, 5, 5, menu)
+    vlist(2, menu)
+    CtxMenu = menu
+
+    for _, opt in ipairs(options) do
+        local row = Instance.new("TextButton")
+        row.Size               = UDim2.new(1, 0, 0, itemH - 2)
+        row.BackgroundColor3   = opt.active and C.AccentSoft or C.MenuBg
+        row.BorderSizePixel    = 0
+        row.Text               = ""
+        row.ZIndex             = 201
+        row.AutoButtonColor    = false
+        row.Parent             = menu
+        corner(6, row)
+        pad(0, 8, 0, 10, row)
+
+        local lbl = L(opt.label, Enum.Font.GothamMedium, 12,
+            opt.active and C.Accent or C.TextPri,
+            UDim2.new(1, 0, 1, 0), nil, nil, row)
+        lbl.ZIndex = 202
+        if opt.active then lbl.Font = Enum.Font.GothamBold end
+
+        row.MouseEnter:Connect(function()
+            if not opt.active then tw(row, { BackgroundColor3 = C.MenuHover }, 0.08) end
+        end)
+        row.MouseLeave:Connect(function()
+            if not opt.active then tw(row, { BackgroundColor3 = C.MenuBg }, 0.08) end
+        end)
+        row.MouseButton1Click:Connect(function()
+            closeCtx()
+            opt.callback()
+        end)
+    end
+
+    -- close on outside click
+    local conn
+    conn = UIS.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1
+        or i.UserInputType == Enum.UserInputType.MouseButton2 then
+            task.defer(function()
+                closeCtx()
+                if conn then conn:Disconnect() end
+            end)
+        end
+    end)
 end
 
 -- ── ScreenGui ───────────────────────────────────────
-local SGui = Instance.new("ScreenGui")
-SGui.Name            = "BizarreLineage"
-SGui.ResetOnSpawn    = false
-SGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
-SGui.Parent          = CoreGui
+SGui = Instance.new("ScreenGui")
+SGui.Name           = "CuackerUI"
+SGui.ResetOnSpawn   = false
+SGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+SGui.IgnoreGuiInset = true
+SGui.Parent         = CoreGui
 
 -- ════════════════════════════════════════════════════
---                   CREATE WINDOW
+--                  CREATE WINDOW
 -- ════════════════════════════════════════════════════
 function Library:CreateWindow(cfg)
     cfg = cfg or {}
 
-    local W         = {}        -- window object returned to caller
+    local W         = {}
     local ActiveTab = nil
-    local AllTabs   = {}
 
     -- ── Main frame ───────────────────────────────
-    local Main = F(C.Bg, UDim2.new(0, 760, 0, 560), UDim2.new(0.5, -380, 0.5, -280), SGui, true)
-    corner(10, Main)
-    stroke(C.Border, 1, Main)
+    local Main = F(C.Bg,
+        UDim2.new(0, 760, 0, 520),
+        UDim2.new(0.5, -380, 0.5, -260), SGui, false)
+    Main.ZIndex = 10
+    corner(14, Main)
+    stroke(C.Border, 1.5, Main)
+    shadow(Main, 44)
 
-    -- ── Drag ─────────────────────────────────────
+    -- ── INSERT to toggle visibility ───────────────
+    UIS.InputBegan:Connect(function(i, gp)
+        if gp then return end
+        if i.KeyCode == Enum.KeyCode.Insert then
+            Main.Visible = not Main.Visible
+        end
+    end)
+
+    -- ── Drag (drag anywhere on Main) ─────────────
     do
-        local dragging, dStart, sPos
+        local drag, dStart, sPos
         Main.InputBegan:Connect(function(i)
             if i.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = true
-                dStart   = i.Position
-                sPos     = Main.Position
+                drag = true; dStart = i.Position; sPos = Main.Position
             end
         end)
         UIS.InputChanged:Connect(function(i)
-            if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
                 local d = i.Position - dStart
-                Main.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset + d.X,
-                                          sPos.Y.Scale, sPos.Y.Offset + d.Y)
+                Main.Position = UDim2.new(
+                    sPos.X.Scale, sPos.X.Offset + d.X,
+                    sPos.Y.Scale, sPos.Y.Offset + d.Y)
             end
         end)
         UIS.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+            if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
         end)
     end
 
-    -- ── Title bar (top) ──────────────────────────
-    local TitleBar = F(C.Sidebar, UDim2.new(0, 190, 0, 52), nil, Main)
-    corner(10, TitleBar)
-    -- kill bottom corners
-    F(C.Sidebar, UDim2.new(0, 190, 0, 14), UDim2.new(0, 0, 1, -14), TitleBar)
-    F(C.Border,  UDim2.new(0, 190, 0, 1),  UDim2.new(0, 0, 1, -1),  TitleBar)
+    -- ── Sidebar ──────────────────────────────────
+    local Sidebar = F(C.Sidebar,
+        UDim2.new(0, 196, 1, 0), nil, Main, true)
+    Sidebar.ZIndex = 11
+    corner(14, Sidebar)
+    F(C.Sidebar, UDim2.new(0, 14, 1, 0),
+        UDim2.new(1, -14, 0, 0), Sidebar).ZIndex = 11   -- fill right corners
 
-    L("bizarre lineage", Enum.Font.GothamBold, 13, C.Accent,
-      UDim2.new(1, -16, 0, 18), UDim2.new(0, 14, 0, 8),  nil, TitleBar)
-    L(cfg.Name or "UI", Enum.Font.Gotham, 11, C.Dim,
-      UDim2.new(1, -16, 0, 14), UDim2.new(0, 14, 0, 28), nil, TitleBar)
+    -- sidebar right divider
+    F(C.SideDiv, UDim2.new(0, 1, 1, 0),
+        UDim2.new(1, -1, 0, 0), Sidebar).ZIndex = 12
 
-    -- close button
-    local CloseBtn = F(C.Faint, UDim2.new(0, 18, 0, 18), UDim2.new(1, -26, 0, 8), Main)
-    corner(4, CloseBtn)
-    L("×", Enum.Font.GothamBold, 14, C.White, UDim2.new(1,0,1,0), nil, Enum.TextXAlignment.Center, CloseBtn)
+    -- ── Logo ─────────────────────────────────────
+    local LogoBar = F(C.Sidebar, UDim2.new(1, 0, 0, 62), nil, Sidebar)
+    LogoBar.ZIndex = 12
+    pad(0, 18, 0, 18, LogoBar)
+
+    -- pink accent dot
+    local dot = F(C.Accent, UDim2.new(0, 8, 0, 8),
+        UDim2.new(0, 0, 0.5, -4), LogoBar)
+    dot.ZIndex = 13; corner(4, dot)
+
+    L("Cuacker", Enum.Font.GothamBold, 17, C.TextPri,
+        UDim2.new(1, -16, 0, 20),
+        UDim2.new(0, 16, 0, 8), nil, LogoBar).ZIndex = 13
+    L(cfg.Name or "Script", Enum.Font.Gotham, 10, C.TextSec,
+        UDim2.new(1, -16, 0, 14),
+        UDim2.new(0, 16, 0, 30), nil, LogoBar).ZIndex = 13
+
+    -- divider under logo
+    F(C.SideDiv, UDim2.new(1, -28, 0, 1),
+        UDim2.new(0, 14, 1, -1), LogoBar).ZIndex = 12
+
+    -- ── Nav scroll (fills entire sidebar below logo)
+    local NavScroll = Instance.new("ScrollingFrame")
+    NavScroll.Size                   = UDim2.new(1, 0, 1, -62)
+    NavScroll.Position               = UDim2.new(0, 0, 0, 62)
+    NavScroll.BackgroundTransparency = 1
+    NavScroll.BorderSizePixel        = 0
+    NavScroll.ScrollBarThickness     = 2
+    NavScroll.ScrollBarImageColor3   = C.AccentMid
+    NavScroll.CanvasSize             = UDim2.new(0, 0, 0, 0)
+    NavScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
+    NavScroll.ZIndex                 = 12
+    NavScroll.Parent                 = Sidebar
+    pad(8, 10, 12, 10, NavScroll)
+    vlist(3, NavScroll)
+
+    -- ── Content pane ─────────────────────────────
+    local ContentOuter = F(C.Bg,
+        UDim2.new(1, -196, 1, 0),
+        UDim2.new(0, 196, 0, 0), Main, true)
+    ContentOuter.ZIndex = 11
+
+    -- single scrolling tab content (no top bar)
+    local TabContent = F(C.Bg,
+        UDim2.new(1, 0, 1, 0), nil, ContentOuter, true)
+    TabContent.ZIndex = 11
+
+    -- ── Close button ─────────────────────────────
+    local CloseBtn = F(C.AccentSoft, UDim2.new(0, 26, 0, 26),
+        UDim2.new(1, -36, 0, 10), Main)
+    CloseBtn.ZIndex = 30; corner(13, CloseBtn)
+    local closeLbl = L("✕", Enum.Font.GothamBold, 11, C.Accent,
+        UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, CloseBtn)
+    closeLbl.ZIndex = 31
     CloseBtn.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then Main.Visible = false end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            Main.Visible = false
+        end
+    end)
+    CloseBtn.MouseEnter:Connect(function()
+        tw(CloseBtn, { BackgroundColor3 = C.Accent }, 0.1)
+        tw(closeLbl, { TextColor3 = C.White }, 0.1)
+    end)
+    CloseBtn.MouseLeave:Connect(function()
+        tw(CloseBtn, { BackgroundColor3 = C.AccentSoft }, 0.1)
+        tw(closeLbl, { TextColor3 = C.Accent }, 0.1)
     end)
 
-    -- ── Sidebar ──────────────────────────────────
-    local Sidebar = F(C.Sidebar, UDim2.new(0, 190, 1, -22), UDim2.new(0,0,0,0), Main)
-    -- kill right corners of sidebar
-    F(C.Sidebar, UDim2.new(0, 12, 1, 0), UDim2.new(1, -12, 0, 0), Sidebar)
-
-    -- Nav scroll
-    local NavScroll = Instance.new("ScrollingFrame")
-    NavScroll.Size                 = UDim2.new(1, 0, 1, -108)
-    NavScroll.Position             = UDim2.new(0, 0, 0, 52)
-    NavScroll.BackgroundTransparency = 1
-    NavScroll.BorderSizePixel      = 0
-    NavScroll.ScrollBarThickness   = 2
-    NavScroll.ScrollBarImageColor3 = C.Accent
-    NavScroll.CanvasSize           = UDim2.new(0, 0, 0, 0)
-    NavScroll.AutomaticCanvasSize  = Enum.AutomaticSize.Y
-    NavScroll.Parent               = Sidebar
-    pad(8, 8, 8, 8, NavScroll)
-    list(2, nil, NavScroll)
-
-    -- "NAVIGATION" group label
-    local NavGroupLbl = F(C.Bg, UDim2.new(1, 0, 0, 22), nil, NavScroll)
-    NavGroupLbl.BackgroundTransparency = 1
-    L("NAVIGATION", Enum.Font.GothamBold, 9, C.Faint,
-      UDim2.new(1, -8, 1, 0), UDim2.new(0, 8, 0, 0), nil, NavGroupLbl)
-
-    -- User profile bar
-    local ProfBar = F(C.Sidebar, UDim2.new(1, 0, 0, 56), UDim2.new(0, 0, 1, -56), Sidebar)
-    F(C.Border, UDim2.new(1, 0, 0, 1), nil, ProfBar)
-
-    local AvatarCircle = F(C.Accent, UDim2.new(0, 32, 0, 32), UDim2.new(0, 12, 0.5, -16), ProfBar)
-    corner(16, AvatarCircle)
-    L("◉", Enum.Font.GothamBold, 16, C.White, UDim2.new(1,0,1,0), nil, Enum.TextXAlignment.Center, AvatarCircle)
-
-    L(LP.Name, Enum.Font.GothamBold, 12, C.White,
-      UDim2.new(1, -58, 0, 14), UDim2.new(0, 52, 0.5, -14), nil, ProfBar)
-    L("Licensed", Enum.Font.GothamMedium, 10, C.Accent,
-      UDim2.new(1, -58, 0, 12), UDim2.new(0, 52, 0.5, 2),   nil, ProfBar)
-    L("›", Enum.Font.GothamBold, 18, C.Faint,
-      UDim2.new(0, 16, 0, 16), UDim2.new(1, -24, 0.5, -8), Enum.TextXAlignment.Center, ProfBar)
-
-    -- ── Bottom info bar ──────────────────────────
-    local BotBar = F(C.Sidebar, UDim2.new(1, 0, 0, 22), UDim2.new(0, 0, 1, -22), Main)
-    F(C.Border, UDim2.new(1, 0, 0, 1), nil, BotBar)
-    L("Bizarre Lineage · " .. (cfg.Name or "Script") .. " · Roblox",
-      Enum.Font.Gotham, 10, C.Faint,
-      UDim2.new(0.6, 0, 1, 0), UDim2.new(0, 14, 0, 0), nil, BotBar)
-    L("bizarrelineage", Enum.Font.GothamMedium, 10, C.Accent,
-      UDim2.new(0.4, -14, 1, 0), UDim2.new(0.6, 0, 0, 0), Enum.TextXAlignment.Right, BotBar)
-
-    -- ── Content area ─────────────────────────────
-    local ContentArea = F(C.Bg, UDim2.new(1, -190, 1, -22), UDim2.new(0, 190, 0, 0), Main, true)
-
-    -- Tab bar strip
-    local TabBar = F(C.Bg, UDim2.new(1, 0, 0, 40), nil, ContentArea)
-    pad(0, 14, 0, 14, TabBar)
-    list(4, Enum.FillDirection.Horizontal, TabBar)
-
-    -- Tab content area
-    local TabContent = F(C.Bg, UDim2.new(1, 0, 1, -40), UDim2.new(0, 0, 0, 40), ContentArea, true)
-
-    -- ── Tab activation helper ────────────────────
+    -- ── Tab switcher ─────────────────────────────
     local function activateTab(tab)
         if ActiveTab then
-            ActiveTab._frame.Visible = false
-            ActiveTab._btn.BackgroundTransparency   = 1
-            ActiveTab._btnLbl.TextColor3            = C.Dim
-            ActiveTab._si.BackgroundTransparency    = 1
-            ActiveTab._siLbl.TextColor3             = C.Dim
-            ActiveTab._siDot.TextColor3             = C.Faint
+            tw(ActiveTab._nav, { BackgroundColor3 = C.Sidebar }, 0.1)
+            ActiveTab._navLbl.TextColor3 = C.TextSec
+            ActiveTab._navLbl.Font       = Enum.Font.GothamMedium
+            ActiveTab._navDot.BackgroundColor3 = C.Border
+            ActiveTab._frame.Visible     = false
         end
         ActiveTab = tab
-        tab._frame.Visible              = true
-        tab._btn.BackgroundColor3       = C.SideActive
-        tab._btn.BackgroundTransparency = 0
-        tab._btnLbl.TextColor3          = C.White
-        tab._si.BackgroundColor3        = C.SideActive
-        tab._si.BackgroundTransparency  = 0
-        tab._siLbl.TextColor3           = C.White
-        tab._siDot.TextColor3           = C.Accent
+        tab._frame.Visible = true
+        tw(tab._nav, { BackgroundColor3 = C.AccentSoft }, 0.12)
+        tab._navLbl.TextColor3 = C.Accent
+        tab._navLbl.Font       = Enum.Font.GothamBold
+        tab._navDot.BackgroundColor3 = C.Accent
     end
 
     -- ════════════════════════════════════════════
-    --                 CREATE TAB
+    --               CREATE TAB
     -- ════════════════════════════════════════════
     function W:CreateTab(name, _icon)
         local tab = {}
 
-        -- Sidebar item
-        local SI = F(C.SideActive, UDim2.new(1, 0, 0, 34), nil, NavScroll)
-        SI.BackgroundTransparency = 1
-        corner(6, SI)
-        local siDot = L("•", Enum.Font.GothamBold, 14, C.Faint,
-            UDim2.new(0, 24, 1, 0), UDim2.new(0, 8, 0, 0), Enum.TextXAlignment.Center, SI)
-        local siLbl = L(name, Enum.Font.GothamMedium, 12, C.Dim,
-            UDim2.new(1, -38, 1, 0), UDim2.new(0, 34, 0, 0), nil, SI)
+        -- sidebar nav row
+        local NavRow = F(C.Sidebar, UDim2.new(1, 0, 0, 36), nil, NavScroll)
+        NavRow.ZIndex = 13; corner(8, NavRow)
+        pad(0, 12, 0, 14, NavRow)
 
-        -- Tab bar button
-        local Btn = F(C.SideActive, UDim2.new(0, 90, 0, 28), UDim2.new(0, 0, 0.5, -14), TabBar)
-        Btn.BackgroundTransparency = 1
-        corner(6, Btn)
-        pad(0, 12, 0, 12, Btn)
-        local BtnLbl = L(name, Enum.Font.GothamMedium, 12, C.Dim,
-            UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, Btn)
+        local navDot = F(C.Border, UDim2.new(0, 7, 0, 7),
+            UDim2.new(0, -1, 0.5, -3.5), NavRow)
+        navDot.ZIndex = 14; corner(4, navDot)
 
-        -- Content scrolling frame
-        local ContentFrame = Instance.new("ScrollingFrame")
-        ContentFrame.Size                 = UDim2.new(1, 0, 1, 0)
-        ContentFrame.BackgroundTransparency = 1
-        ContentFrame.BorderSizePixel      = 0
-        ContentFrame.ScrollBarThickness   = 3
-        ContentFrame.ScrollBarImageColor3 = C.Accent
-        ContentFrame.CanvasSize           = UDim2.new(0, 0, 0, 0)
-        ContentFrame.AutomaticCanvasSize  = Enum.AutomaticSize.Y
-        ContentFrame.Visible              = false
-        ContentFrame.Parent               = TabContent
-        pad(10, 12, 12, 12, ContentFrame)
-        list(6, nil, ContentFrame)
+        local navLbl = L(name, Enum.Font.GothamMedium, 12, C.TextSec,
+            UDim2.new(1, -16, 1, 0), UDim2.new(0, 14, 0, 0), nil, NavRow)
+        navLbl.ZIndex = 14
 
-        tab._frame  = ContentFrame
-        tab._btn    = Btn
-        tab._btnLbl = BtnLbl
-        tab._si     = SI
-        tab._siLbl  = siLbl
-        tab._siDot  = siDot
+        -- content scrollframe
+        local CF = Instance.new("ScrollingFrame")
+        CF.Size                   = UDim2.new(1, 0, 1, 0)
+        CF.BackgroundTransparency = 1
+        CF.BorderSizePixel        = 0
+        CF.ScrollBarThickness     = 3
+        CF.ScrollBarImageColor3   = C.AccentMid
+        CF.CanvasSize             = UDim2.new(0, 0, 0, 0)
+        CF.AutomaticCanvasSize    = Enum.AutomaticSize.Y
+        CF.ZIndex                 = 12
+        CF.Visible                = false
+        CF.Parent                 = TabContent
+        pad(14, 18, 18, 18, CF)
+        vlist(6, CF)
 
-        local function click(i)
+        tab._frame  = CF
+        tab._nav    = NavRow
+        tab._navLbl = navLbl
+        tab._navDot = navDot
+
+        NavRow.InputBegan:Connect(function(i)
             if i.UserInputType == Enum.UserInputType.MouseButton1 then activateTab(tab) end
-        end
-        Btn.InputBegan:Connect(click)
-        SI.InputBegan:Connect(click)
+        end)
+        NavRow.MouseEnter:Connect(function()
+            if ActiveTab ~= tab then
+                tw(NavRow, { BackgroundColor3 = C.CardHover }, 0.08)
+            end
+        end)
+        NavRow.MouseLeave:Connect(function()
+            if ActiveTab ~= tab then
+                tw(NavRow, { BackgroundColor3 = C.Sidebar }, 0.08)
+            end
+        end)
 
         if not ActiveTab then activateTab(tab) end
-        AllTabs[name] = tab
 
-        -- ── Element builders ─────────────────────
-
-        -- Section header
+        -- ─── SECTION ─────────────────────────────
         function tab:CreateSection(title)
-            local hdr = F(C.Bg, UDim2.new(1, 0, 0, 26), nil, ContentFrame)
-            hdr.BackgroundTransparency = 1
-            L(title:upper(), Enum.Font.GothamBold, 9, C.Faint,
-              UDim2.new(1, 0, 1, 0), nil, nil, hdr)
-            return hdr
+            local wrap = F(C.Bg, UDim2.new(1, 0, 0, 30), nil, CF)
+            wrap.BackgroundTransparency = 1; wrap.ZIndex = 12
+            L(title:upper(), Enum.Font.GothamBold, 9, C.TextMute,
+                UDim2.new(1, 0, 0, 16), UDim2.new(0, 2, 0, 6), nil, wrap).ZIndex = 13
+            F(C.Border, UDim2.new(1, 0, 0, 1),
+                UDim2.new(0, 0, 1, -1), wrap).ZIndex = 13
         end
 
-        -- Label
+        -- ─── LABEL ───────────────────────────────
         function tab:CreateLabel(text)
             local obj = {}
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 34), nil, ContentFrame)
-            corner(7, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
-            local Lbl = L(text, Enum.Font.Gotham, 12, C.Dim, UDim2.new(1,0,1,0), nil, nil, Row)
-            function obj:Set(t) Lbl.Text = t end
+            local Row = F(C.Card, UDim2.new(1, 0, 0, 38), nil, CF)
+            Row.ZIndex = 13; corner(9, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
+            local lbl = L(text, Enum.Font.GothamMedium, 12, C.TextSec,
+                UDim2.new(1, 0, 1, 0), nil, nil, Row)
+            lbl.ZIndex = 14
+            function obj:Set(t) lbl.Text = t end
             return obj
         end
 
-        -- Toggle
-        function tab:CreateToggle(cfg)
-            cfg = cfg or {}
+        -- ─── TOGGLE ──────────────────────────────
+        function tab:CreateToggle(cfg2)
+            cfg2 = cfg2 or {}
             local obj = {}
-            local val = cfg.CurrentValue or false
-            if cfg.Flag then Library.Flags[cfg.Flag] = val end
+            local val = cfg2.CurrentValue or false
+            if cfg2.Flag then Library.Flags[cfg2.Flag] = val end
 
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 56), nil, ContentFrame)
-            corner(8, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
+            local Row = F(val and C.AccentSoft or C.Card,
+                UDim2.new(1, 0, 0, 60), nil, CF)
+            Row.ZIndex = 13; corner(10, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
 
-            L(cfg.Name or "", Enum.Font.GothamBold, 13, C.White,
-              UDim2.new(1, -50, 0, 17), UDim2.new(0, 0, 0, 8), nil, Row)
-            L(cfg.Description or "Toggle this option.",
-              Enum.Font.Gotham, 10, C.Dim,
-              UDim2.new(1, -50, 0, 14), UDim2.new(0, 0, 0, 29), nil, Row)
+            L(cfg2.Name or "", Enum.Font.GothamBold, 13, C.TextPri,
+                UDim2.new(1, -56, 0, 18), UDim2.new(0, 0, 0, 8), nil, Row).ZIndex = 14
+            L(cfg2.Description or "Toggle this option.", Enum.Font.Gotham, 10, C.TextSec,
+                UDim2.new(1, -56, 0, 15), UDim2.new(0, 0, 0, 30), nil, Row).ZIndex = 14
 
-            -- Pill
             local Pill = F(val and C.TogOn or C.TogOff,
-                UDim2.new(0, 36, 0, 20), UDim2.new(1, -36, 0.5, -10), Row)
-            corner(10, Pill)
-            local Dot = F(C.White, UDim2.new(0, 14, 0, 14),
-                val and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7), Pill)
-            corner(7, Dot)
+                UDim2.new(0, 40, 0, 22), UDim2.new(1, -40, 0.5, -11), Row)
+            Pill.ZIndex = 14; corner(11, Pill)
+            local Dot = F(C.White, UDim2.new(0, 16, 0, 16),
+                val and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8), Pill)
+            Dot.ZIndex = 15; corner(8, Dot)
 
             local function setVal(v)
                 val = v
-                if cfg.Flag then Library.Flags[cfg.Flag] = v end
-                tw(Pill, { BackgroundColor3 = v and C.TogOn or C.TogOff })
-                tw(Dot,  { Position = v and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7) })
-                if cfg.Callback then cfg.Callback(v) end
+                if cfg2.Flag then Library.Flags[cfg2.Flag] = v end
+                tw(Pill, { BackgroundColor3 = v and C.TogOn or C.TogOff }, 0.16)
+                tw(Dot,  { Position = v
+                    and UDim2.new(1, -19, 0.5, -8)
+                    or  UDim2.new(0, 3,   0.5, -8) }, 0.16)
+                tw(Row,  { BackgroundColor3 = v and C.AccentSoft or C.Card }, 0.16)
+                if cfg2.Callback then cfg2.Callback(v) end
             end
 
             Row.InputBegan:Connect(function(i)
                 if i.UserInputType == Enum.UserInputType.MouseButton1 then setVal(not val) end
             end)
+            Row.MouseEnter:Connect(function()
+                if not val then tw(Row, { BackgroundColor3 = C.CardHover }, 0.1) end
+            end)
+            Row.MouseLeave:Connect(function()
+                if not val then tw(Row, { BackgroundColor3 = C.Card }, 0.1) end
+            end)
+
             function obj:Set(v) setVal(v) end
             return obj
         end
 
-        -- Slider
-        function tab:CreateSlider(cfg)
-            cfg = cfg or {}
+        -- ─── SLIDER ──────────────────────────────
+        -- FIX: MouseEnter/Leave on the track disables/re-enables the
+        --      parent ScrollingFrame so scrolling the wheel never moves the page.
+        function tab:CreateSlider(cfg2)
+            cfg2 = cfg2 or {}
             local obj  = {}
-            local mn   = (cfg.Range and cfg.Range[1]) or 0
-            local mx   = (cfg.Range and cfg.Range[2]) or 100
-            local step = cfg.Increment or 1
-            local suf  = cfg.Suffix or ""
-            local val  = cfg.CurrentValue or mn
-            if cfg.Flag then Library.Flags[cfg.Flag] = val end
+            local mn   = (cfg2.Range and cfg2.Range[1]) or 0
+            local mx   = (cfg2.Range and cfg2.Range[2]) or 100
+            local step = cfg2.Increment or 1
+            local suf  = cfg2.Suffix or ""
+            local val  = cfg2.CurrentValue or mn
+            if cfg2.Flag then Library.Flags[cfg2.Flag] = val end
 
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 62), nil, ContentFrame)
-            corner(8, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
+            local Row = F(C.Card, UDim2.new(1, 0, 0, 66), nil, CF)
+            Row.ZIndex = 13; corner(10, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
 
-            L(cfg.Name or "", Enum.Font.GothamBold, 13, C.White,
-              UDim2.new(0.65, 0, 0, 17), UDim2.new(0, 0, 0, 6), nil, Row)
+            L(cfg2.Name or "", Enum.Font.GothamBold, 13, C.TextPri,
+                UDim2.new(0.62, 0, 0, 18), UDim2.new(0, 0, 0, 6), nil, Row).ZIndex = 14
 
-            local ValLbl = L(tostring(val) .. (suf ~= "" and " "..suf or ""),
-                Enum.Font.GothamMedium, 12, C.Accent,
-                UDim2.new(0.35, 0, 0, 17), UDim2.new(0.65, 0, 0, 6),
+            local ValLbl = L(tostring(val) .. (suf~="" and " "..suf or ""),
+                Enum.Font.GothamBold, 12, C.Accent,
+                UDim2.new(0.38, 0, 0, 18), UDim2.new(0.62, 0, 0, 6),
                 Enum.TextXAlignment.Right, Row)
+            ValLbl.ZIndex = 14
 
-            local Track = F(C.SliderBg, UDim2.new(1, 0, 0, 6), UDim2.new(0, 0, 0, 38), Row)
-            corner(3, Track)
+            local Track = F(C.SliderBg, UDim2.new(1, 0, 0, 6),
+                UDim2.new(0, 0, 0, 42), Row)
+            Track.ZIndex = 14; corner(3, Track)
+
             local pct0 = (val - mn) / (mx - mn)
             local Fill  = F(C.Accent, UDim2.new(pct0, 0, 1, 0), nil, Track)
-            corner(3, Fill)
-            local Thumb = F(C.White, UDim2.new(0, 14, 0, 14),
-                UDim2.new(pct0, -7, 0.5, -7), Track)
-            corner(7, Thumb)
+            Fill.ZIndex = 15; corner(3, Fill)
+
+            local Thumb = F(C.White, UDim2.new(0, 16, 0, 16),
+                UDim2.new(pct0, -8, 0.5, -8), Track)
+            Thumb.ZIndex = 16; corner(8, Thumb)
+            stroke(C.AccentMid, 2, Thumb)
+
+            -- ── scroll-lock: while mouse is over the slider,
+            --    disable the parent tab ScrollingFrame ──────
+            Track.MouseEnter:Connect(function() CF.ScrollingEnabled = false end)
+            Track.MouseLeave:Connect(function() CF.ScrollingEnabled = true  end)
+            Row.MouseLeave:Connect(function()   CF.ScrollingEnabled = true  end)
 
             local function setVal(v)
                 v = math.clamp(math.round((v - mn) / step) * step + mn, mn, mx)
                 val = v
-                if cfg.Flag then Library.Flags[cfg.Flag] = v end
+                if cfg2.Flag then Library.Flags[cfg2.Flag] = v end
                 local p = (v - mn) / (mx - mn)
                 Fill.Size      = UDim2.new(p, 0, 1, 0)
-                Thumb.Position = UDim2.new(p, -7, 0.5, -7)
-                ValLbl.Text    = tostring(v) .. (suf ~= "" and " "..suf or "")
-                if cfg.Callback then cfg.Callback(v) end
+                Thumb.Position = UDim2.new(p, -8, 0.5, -8)
+                ValLbl.Text    = tostring(v) .. (suf~="" and " "..suf or "")
+                if cfg2.Callback then cfg2.Callback(v) end
             end
 
             local sliding = false
             Track.InputBegan:Connect(function(i)
                 if i.UserInputType == Enum.UserInputType.MouseButton1 then
                     sliding = true
-                    local rx = math.clamp((i.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+                    local rx = math.clamp(
+                        (i.Position.X - Track.AbsolutePosition.X)
+                        / Track.AbsoluteSize.X, 0, 1)
                     setVal(mn + rx * (mx - mn))
                 end
             end)
             UIS.InputChanged:Connect(function(i)
                 if sliding and i.UserInputType == Enum.UserInputType.MouseMovement then
-                    local rx = math.clamp((i.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+                    local rx = math.clamp(
+                        (i.Position.X - Track.AbsolutePosition.X)
+                        / Track.AbsoluteSize.X, 0, 1)
                     setVal(mn + rx * (mx - mn))
                 end
             end)
             UIS.InputEnded:Connect(function(i)
-                if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+                if i.UserInputType == Enum.UserInputType.MouseButton1 then
+                    sliding = false
+                    CF.ScrollingEnabled = true
+                end
             end)
 
             function obj:Set(v) setVal(v) end
             return obj
         end
 
-        -- Keybind
-        function tab:CreateKeybind(cfg)
-            cfg = cfg or {}
+        -- ─── KEYBIND ─────────────────────────────
+        -- • Left-click  → listen for new key
+        -- • Same key again while already bound → sets to "None" (Keyless)
+        -- • Right-click → context menu: Toggle / Hold / Keyless
+        function tab:CreateKeybind(cfg2)
+            cfg2 = cfg2 or {}
             local obj       = {}
-            local curKey    = cfg.CurrentKeybind or "None"
+            local curKey    = cfg2.CurrentKeybind or "None"
+            local mode      = "Toggle"
             local listening = false
-            if cfg.Flag then Library.Flags[cfg.Flag] = curKey end
+            local held      = false
+            if cfg2.Flag then Library.Flags[cfg2.Flag] = curKey end
 
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 56), nil, ContentFrame)
-            corner(8, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
+            local Row = F(C.Card, UDim2.new(1, 0, 0, 72), nil, CF)
+            Row.ZIndex = 13; corner(10, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
 
-            L(cfg.Name or "", Enum.Font.GothamBold, 13, C.White,
-              UDim2.new(1, -56, 0, 17), UDim2.new(0, 0, 0, 8), nil, Row)
-            L("Press to change • hold to activate",
-              Enum.Font.Gotham, 10, C.Dim,
-              UDim2.new(1, -56, 0, 14), UDim2.new(0, 0, 0, 29), nil, Row)
+            L(cfg2.Name or "", Enum.Font.GothamBold, 13, C.TextPri,
+                UDim2.new(1, -120, 0, 18), UDim2.new(0, 0, 0, 7), nil, Row).ZIndex = 14
+            L("Left-click to bind  ·  Right-click for options",
+                Enum.Font.Gotham, 10, C.TextMute,
+                UDim2.new(1, -120, 0, 14), UDim2.new(0, 0, 0, 29), nil, Row).ZIndex = 14
 
-            local Badge = F(C.KeyBg, UDim2.new(0, 44, 0, 24), UDim2.new(1, -44, 0.5, -12), Row)
-            corner(5, Badge)
-            stroke(C.Border, 1, Badge)
-            local BadgeLbl = L(curKey:upper():sub(1,6), Enum.Font.GothamBold, 11, C.White,
-                UDim2.new(1,0,1,0), nil, Enum.TextXAlignment.Center, Badge)
+            -- mode badge
+            local ModeBadge = F(C.AccentSoft, UDim2.new(0, 56, 0, 19),
+                UDim2.new(1, -116, 0, 48), Row)
+            ModeBadge.ZIndex = 14; corner(5, ModeBadge)
+            local ModeLbl = L("Toggle", Enum.Font.GothamBold, 9, C.Accent,
+                UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, ModeBadge)
+            ModeLbl.ZIndex = 15
 
-            Badge.InputBegan:Connect(function(i)
+            -- key badge
+            local KeyBadge = F(C.BadgeBg, UDim2.new(0, 52, 0, 28),
+                UDim2.new(1, -56, 0.5, -14), Row)
+            KeyBadge.ZIndex = 14; corner(7, KeyBadge)
+            local kstr = stroke(C.Border, 1.5, KeyBadge)
+
+            local KeyLbl = L(curKey == "None" and "None" or curKey:upper():sub(1, 7),
+                Enum.Font.GothamBold, 11, C.TextPri,
+                UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, KeyBadge)
+            KeyLbl.ZIndex = 15
+
+            local function refreshBadge()
+                ModeLbl.Text = mode
+                if listening then
+                    KeyLbl.Text       = "..."
+                    KeyLbl.TextColor3 = C.Accent
+                    tw(KeyBadge, { BackgroundColor3 = C.AccentSoft })
+                    kstr.Color = C.Accent
+                elseif curKey == "None" then
+                    KeyLbl.Text       = "None"
+                    KeyLbl.TextColor3 = C.TextMute
+                    tw(KeyBadge, { BackgroundColor3 = C.BadgeBg })
+                    kstr.Color = C.Border
+                else
+                    KeyLbl.Text       = curKey:upper():sub(1, 7)
+                    KeyLbl.TextColor3 = C.TextPri
+                    tw(KeyBadge, { BackgroundColor3 = C.BadgeBg })
+                    kstr.Color = C.Border
+                end
+            end
+
+            -- left / right click on badge
+            KeyBadge.InputBegan:Connect(function(i)
                 if i.UserInputType == Enum.UserInputType.MouseButton1 then
                     listening = true
-                    BadgeLbl.Text      = "..."
-                    BadgeLbl.TextColor3 = C.Accent
+                    refreshBadge()
+                elseif i.UserInputType == Enum.UserInputType.MouseButton2 then
+                    local ap = KeyBadge.AbsolutePosition
+                    showCtx({
+                        { label = "Toggle",
+                          active = (mode == "Toggle"),
+                          callback = function() mode = "Toggle"; refreshBadge() end },
+                        { label = "Hold",
+                          active = (mode == "Hold"),
+                          callback = function() mode = "Hold";   refreshBadge() end },
+                        { label = "Keyless  (unbind)",
+                          active = (curKey == "None"),
+                          callback = function()
+                              curKey = "None"; listening = false
+                              if cfg2.Flag then Library.Flags[cfg2.Flag] = "None" end
+                              refreshBadge()
+                          end },
+                    }, ap.X, ap.Y + 32)
                 end
             end)
-            UIS.InputBegan:Connect(function(i)
-                if listening and i.UserInputType == Enum.UserInputType.Keyboard then
+            KeyBadge.MouseEnter:Connect(function()
+                if not listening then tw(KeyBadge, { BackgroundColor3 = C.AccentSoft }, 0.1) end
+            end)
+            KeyBadge.MouseLeave:Connect(function()
+                if not listening then tw(KeyBadge, { BackgroundColor3 = C.BadgeBg }, 0.1) end
+            end)
+
+            -- keyboard input
+            UIS.InputBegan:Connect(function(i, gp)
+                if gp then return end
+                if i.UserInputType ~= Enum.UserInputType.Keyboard then return end
+                if i.KeyCode == Enum.KeyCode.Insert then return end  -- reserved
+
+                if listening then
                     listening = false
-                    curKey = i.KeyCode.Name
-                    if cfg.Flag then Library.Flags[cfg.Flag] = curKey end
-                    BadgeLbl.Text       = curKey:upper():sub(1,6)
-                    BadgeLbl.TextColor3 = C.White
-                elseif not listening and i.UserInputType == Enum.UserInputType.Keyboard then
-                    if i.KeyCode.Name:lower() == curKey:lower() then
-                        if cfg.Callback then cfg.Callback() end
+                    local k = i.KeyCode.Name
+                    -- pressing same key again → Keyless
+                    if k == curKey then
+                        curKey = "None"
+                    else
+                        curKey = k
+                    end
+                    if cfg2.Flag then Library.Flags[cfg2.Flag] = curKey end
+                    refreshBadge()
+                    return
+                end
+
+                if curKey ~= "None" and i.KeyCode.Name == curKey then
+                    if mode == "Toggle" then
+                        if cfg2.Callback then cfg2.Callback() end
+                    elseif mode == "Hold" then
+                        held = true
+                        if cfg2.Callback then cfg2.Callback(true) end
                     end
                 end
             end)
 
+            UIS.InputEnded:Connect(function(i)
+                if mode == "Hold" and held
+                and i.UserInputType == Enum.UserInputType.Keyboard
+                and curKey ~= "None" and i.KeyCode.Name == curKey then
+                    held = false
+                    if cfg2.Callback then cfg2.Callback(false) end
+                end
+            end)
+
             function obj:Set(k)
-                curKey = k
-                BadgeLbl.Text = k:upper():sub(1,6)
-                if cfg.Flag then Library.Flags[cfg.Flag] = k end
+                curKey = k or "None"
+                if cfg2.Flag then Library.Flags[cfg2.Flag] = curKey end
+                refreshBadge()
             end
+            function obj:SetMode(m) mode = m or "Toggle"; refreshBadge() end
             return obj
         end
 
-        -- Button
-        function tab:CreateButton(cfg)
-            cfg = cfg or {}
+        -- ─── BUTTON ──────────────────────────────
+        function tab:CreateButton(cfg2)
+            cfg2 = cfg2 or {}
             local obj = {}
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 44), nil, ContentFrame)
-            corner(8, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
+            local Row = F(C.Card, UDim2.new(1, 0, 0, 50), nil, CF)
+            Row.ZIndex = 13; corner(10, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
 
-            local Btn2 = F(C.Accent, UDim2.new(1, 0, 0, 26), UDim2.new(0, 0, 0.5, -13), Row)
-            corner(6, Btn2)
-            L(cfg.Name or "Button", Enum.Font.GothamBold, 12, C.White,
-              UDim2.new(1,0,1,0), nil, Enum.TextXAlignment.Center, Btn2)
+            local Btn = F(C.Accent, UDim2.new(1, 0, 0, 28),
+                UDim2.new(0, 0, 0.5, -14), Row)
+            Btn.ZIndex = 14; corner(8, Btn)
 
-            Btn2.InputBegan:Connect(function(i)
+            L(cfg2.Name or "Button", Enum.Font.GothamBold, 12, C.White,
+                UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, Btn).ZIndex = 15
+
+            Btn.InputBegan:Connect(function(i)
                 if i.UserInputType == Enum.UserInputType.MouseButton1 then
-                    tw(Btn2, { BackgroundColor3 = C.AccentDim })
-                    task.delay(0.15, function() tw(Btn2, { BackgroundColor3 = C.Accent }) end)
-                    if cfg.Callback then cfg.Callback() end
+                    tw(Btn, { Size = UDim2.new(0.97, 0, 0, 26) }, 0.07)
+                    task.delay(0.1, function()
+                        tw(Btn, { Size = UDim2.new(1, 0, 0, 28) }, 0.1)
+                    end)
+                    if cfg2.Callback then cfg2.Callback() end
                 end
             end)
+            Btn.MouseEnter:Connect(function()
+                tw(Btn, { BackgroundColor3 = C.AccentDark }, 0.1)
+            end)
+            Btn.MouseLeave:Connect(function()
+                tw(Btn, { BackgroundColor3 = C.Accent }, 0.1)
+            end)
+
             function obj:Set() end
             return obj
         end
 
-        -- Input (TextBox)
-        function tab:CreateInput(cfg)
-            cfg = cfg or {}
+        -- ─── INPUT ───────────────────────────────
+        function tab:CreateInput(cfg2)
+            cfg2 = cfg2 or {}
             local obj = {}
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 58), nil, ContentFrame)
-            corner(8, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
+            local Row = F(C.Card, UDim2.new(1, 0, 0, 64), nil, CF)
+            Row.ZIndex = 13; corner(10, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
 
-            L(cfg.Name or "", Enum.Font.GothamBold, 13, C.White,
-              UDim2.new(1,0,0,16), UDim2.new(0,0,0,5), nil, Row)
+            L(cfg2.Name or "", Enum.Font.GothamBold, 13, C.TextPri,
+                UDim2.new(1, 0, 0, 17), UDim2.new(0, 0, 0, 5), nil, Row).ZIndex = 14
 
-            local IBg = F(C.SliderBg, UDim2.new(1,0,0,24), UDim2.new(0,0,0,26), Row)
-            corner(5, IBg)
+            local IBg = F(C.SliderBg, UDim2.new(1, 0, 0, 26),
+                UDim2.new(0, 0, 0, 30), Row)
+            IBg.ZIndex = 14; corner(6, IBg)
+            local ist = stroke(C.Border, 1, IBg)
+
             local TBox = Instance.new("TextBox")
-            TBox.Size              = UDim2.new(1,-8,1,0)
-            TBox.Position          = UDim2.new(0,4,0,0)
+            TBox.Size               = UDim2.new(1, -16, 1, 0)
+            TBox.Position           = UDim2.new(0, 8, 0, 0)
             TBox.BackgroundTransparency = 1
-            TBox.Text              = cfg.CurrentValue or ""
-            TBox.PlaceholderText   = cfg.PlaceholderText or ""
-            TBox.Font              = Enum.Font.Gotham
-            TBox.TextSize          = 11
-            TBox.TextColor3        = C.White
-            TBox.PlaceholderColor3 = C.Faint
-            TBox.TextXAlignment    = Enum.TextXAlignment.Left
-            TBox.BorderSizePixel   = 0
-            TBox.Parent            = IBg
+            TBox.Text               = cfg2.CurrentValue or ""
+            TBox.PlaceholderText    = cfg2.PlaceholderText or "Type here…"
+            TBox.Font               = Enum.Font.Gotham
+            TBox.TextSize           = 11
+            TBox.TextColor3         = C.TextPri
+            TBox.PlaceholderColor3  = C.TextMute
+            TBox.TextXAlignment     = Enum.TextXAlignment.Left
+            TBox.BorderSizePixel    = 0
+            TBox.ZIndex             = 15
+            TBox.Parent             = IBg
+            TBox.Focused:Connect(function()
+                tw(IBg, { BackgroundColor3 = C.AccentSoft }, 0.1)
+                ist.Color = C.Accent
+            end)
             TBox.FocusLost:Connect(function(enter)
-                if cfg.Flag then Library.Flags[cfg.Flag] = TBox.Text end
-                if cfg.Callback then cfg.Callback(TBox.Text, enter) end
+                tw(IBg, { BackgroundColor3 = C.SliderBg }, 0.1)
+                ist.Color = C.Border
+                if cfg2.Flag then Library.Flags[cfg2.Flag] = TBox.Text end
+                if cfg2.Callback then cfg2.Callback(TBox.Text, enter) end
             end)
             function obj:Set(v) TBox.Text = v end
             return obj
         end
 
-        -- Dropdown
-        function tab:CreateDropdown(cfg)
-            cfg = cfg or {}
+        -- ─── DROPDOWN ────────────────────────────
+        function tab:CreateDropdown(cfg2)
+            cfg2 = cfg2 or {}
             local obj     = {}
-            local options = cfg.Options or {}
-            local sel     = cfg.CurrentOption or (options[1] or "Select…")
+            local options = cfg2.Options or {}
+            local sel     = cfg2.CurrentOption or (options[1] or "Select…")
             local open    = false
-            if cfg.Flag then Library.Flags[cfg.Flag] = sel end
+            if cfg2.Flag then Library.Flags[cfg2.Flag] = sel end
 
-            local Row = F(C.Card, UDim2.new(1, 0, 0, 54), nil, ContentFrame)
-            corner(8, Row)
-            stroke(C.Border, 1, Row)
-            pad(0, 12, 0, 12, Row)
+            local Row = F(C.Card, UDim2.new(1, 0, 0, 62), nil, CF)
+            Row.ZIndex = 13; corner(10, Row); stroke(C.Border, 1, Row)
+            pad(0, 14, 0, 14, Row)
 
-            L(cfg.Name or "", Enum.Font.GothamBold, 13, C.White,
-              UDim2.new(1,0,0,16), UDim2.new(0,0,0,4), nil, Row)
+            L(cfg2.Name or "", Enum.Font.GothamBold, 13, C.TextPri,
+                UDim2.new(1, 0, 0, 17), UDim2.new(0, 0, 0, 4), nil, Row).ZIndex = 14
 
-            local DBg = F(C.SliderBg, UDim2.new(1,0,0,24), UDim2.new(0,0,0,26), Row)
-            corner(5, DBg)
-            local SelLbl = L(tostring(sel), Enum.Font.GothamMedium, 11, C.White,
-                UDim2.new(1,-24,1,0), UDim2.new(0,6,0,0), nil, DBg)
-            L("▾", Enum.Font.GothamBold, 12, C.Dim,
-              UDim2.new(0,16,1,0), UDim2.new(1,-18,0,0), Enum.TextXAlignment.Center, DBg)
+            local DBg = F(C.SliderBg, UDim2.new(1, 0, 0, 26),
+                UDim2.new(0, 0, 0, 28), Row)
+            DBg.ZIndex = 14; corner(6, DBg); stroke(C.Border, 1, DBg)
 
-            local DList = F(C.Card, UDim2.new(1,0,0,0), UDim2.new(0,0,1,3), Row, true)
-            DList.ZIndex = 5
-            corner(6, DList)
-            stroke(C.Border, 1, DList)
-            list(0, nil, DList)
+            local SelLbl = L(tostring(sel), Enum.Font.GothamMedium, 11, C.TextPri,
+                UDim2.new(1, -26, 1, 0), UDim2.new(0, 8, 0, 0), nil, DBg)
+            SelLbl.ZIndex = 15
+            L("⌄", Enum.Font.GothamBold, 13, C.TextSec,
+                UDim2.new(0, 20, 1, 0), UDim2.new(1, -22, 0, 0),
+                Enum.TextXAlignment.Center, DBg).ZIndex = 15
+
+            local DList = F(C.Card, UDim2.new(1, 0, 0, 0),
+                UDim2.new(0, 0, 1, 4), Row, true)
+            DList.ZIndex = 60; corner(8, DList); stroke(C.Border, 1, DList)
+            vlist(0, DList)
 
             local function buildList()
                 for _, c2 in ipairs(DList:GetChildren()) do
                     if c2:IsA("Frame") then c2:Destroy() end
                 end
                 for _, opt in ipairs(options) do
-                    local OR = F(C.Card, UDim2.new(1,0,0,26), nil, DList)
-                    OR.ZIndex = 6
-                    OR.BackgroundTransparency = 1
-                    pad(0,8,0,8,OR)
+                    local active = tostring(opt) == tostring(sel)
+                    local OR = F(active and C.AccentSoft or C.Card,
+                        UDim2.new(1, -8, 0, 28), nil, DList)
+                    OR.ZIndex = 61; corner(5, OR); pad(0, 10, 0, 10, OR)
                     local oLbl = L(tostring(opt), Enum.Font.GothamMedium, 11,
-                        tostring(opt)==tostring(sel) and C.Accent or C.White,
-                        UDim2.new(1,0,1,0), nil, nil, OR)
-                    oLbl.ZIndex = 7
+                        active and C.Accent or C.TextPri,
+                        UDim2.new(1, 0, 1, 0), nil, nil, OR)
+                    oLbl.ZIndex = 62
                     OR.InputBegan:Connect(function(i)
                         if i.UserInputType == Enum.UserInputType.MouseButton1 then
-                            sel = opt
-                            SelLbl.Text = tostring(opt)
-                            if cfg.Flag then Library.Flags[cfg.Flag] = opt end
-                            if cfg.Callback then cfg.Callback(opt) end
+                            sel = opt; SelLbl.Text = tostring(opt)
+                            if cfg2.Flag then Library.Flags[cfg2.Flag] = opt end
+                            if cfg2.Callback then cfg2.Callback(opt) end
                             open = false
-                            tw(DList, { Size = UDim2.new(1,0,0,0) })
-                            Row.Size = UDim2.new(1,0,0,54)
+                            tw(DList, { Size = UDim2.new(1, 0, 0, 0) })
+                            Row.Size = UDim2.new(1, 0, 0, 62)
                             buildList()
                         end
+                    end)
+                    OR.MouseEnter:Connect(function()
+                        if not active then tw(OR, { BackgroundColor3 = C.AccentSoft }, 0.08) end
+                    end)
+                    OR.MouseLeave:Connect(function()
+                        if not active then tw(OR, { BackgroundColor3 = C.Card }, 0.08) end
                     end)
                 end
             end
@@ -599,14 +833,14 @@ function Library:CreateWindow(cfg)
             DBg.InputBegan:Connect(function(i)
                 if i.UserInputType == Enum.UserInputType.MouseButton1 then
                     open = not open
-                    local h = open and math.min(#options, 6) * 26 or 0
-                    tw(DList, { Size = UDim2.new(1,0,0,h) })
-                    Row.Size = UDim2.new(1,0,0, open and 54 + h + 4 or 54)
+                    local h = open and math.min(#options, 6) * 28 or 0
+                    tw(DList, { Size = UDim2.new(1, 0, 0, h) })
+                    Row.Size = UDim2.new(1, 0, 0, open and 62 + h + 6 or 62)
                     buildList()
                 end
             end)
 
-            function obj:Set(v)   sel = v;   SelLbl.Text = tostring(v); buildList() end
+            function obj:Set(v) sel = v; SelLbl.Text = tostring(v); buildList() end
             function obj:Refresh(opts) options = opts; buildList() end
             return obj
         end
@@ -614,35 +848,46 @@ function Library:CreateWindow(cfg)
         return tab
     end -- CreateTab
 
-    -- Notification
-    function W:Notify(cfg)
-        cfg = cfg or {}
-        local n = F(C.Card, UDim2.new(0, 260, 0, 64),
-            UDim2.new(1, -270, 1, -74), SGui)
-        n.BackgroundTransparency = 1
-        corner(8, n)
-        stroke(C.Accent, 1, n)
-        pad(0, 12, 0, 12, n)
-        L(cfg.Title or "Notice", Enum.Font.GothamBold, 12, C.White,
-          UDim2.new(1,0,0,18), UDim2.new(0,0,0,8), nil, n)
-        L(cfg.Content or "", Enum.Font.Gotham, 10, C.Dim,
-          UDim2.new(1,0,0,14), UDim2.new(0,0,0,30), nil, n)
-        tw(n, { BackgroundTransparency = 0 }, 0.2)
-        task.delay(cfg.Duration or 3, function()
-            tw(n, { BackgroundTransparency = 1 }, 0.3)
-            task.delay(0.32, function() n:Destroy() end)
+    -- ── Notification ─────────────────────────────
+    function W:Notify(cfg2)
+        cfg2 = cfg2 or {}
+        local notif = F(C.White,
+            UDim2.new(0, 272, 0, 0),
+            UDim2.new(1, -284, 1, -14), SGui)
+        notif.AutomaticSize = Enum.AutomaticSize.Y
+        notif.ZIndex        = 300
+        corner(10, notif)
+        stroke(C.Border, 1.5, notif)
+        shadow(notif, 20)
+        pad(12, 14, 14, 14, notif)
+        vlist(4, notif)
+
+        -- pink top bar
+        local bar = F(C.Accent, UDim2.new(1, 0, 0, 3), nil, notif)
+        bar.ZIndex = 301; corner(2, bar)
+
+        local tl = L(cfg2.Title or "Notice", Enum.Font.GothamBold, 13, C.TextPri,
+            UDim2.new(1, 0, 0, 18), nil, nil, notif)
+        tl.ZIndex = 301
+
+        local cl = L(cfg2.Content or "", Enum.Font.Gotham, 11, C.TextSec,
+            UDim2.new(1, 0, 0, 0), nil, nil, notif)
+        cl.ZIndex      = 301
+        cl.TextWrapped = true
+        cl.AutomaticSize = Enum.AutomaticSize.Y
+
+        notif.BackgroundTransparency = 1
+        tw(notif, { BackgroundTransparency = 0 }, 0.18)
+        task.delay(cfg2.Duration or 3.5, function()
+            tw(notif, { BackgroundTransparency = 1 }, 0.25)
+            task.delay(0.3, function() notif:Destroy() end)
         end)
     end
 
     return W
 end -- CreateWindow
 
--- LoadConfiguration: restore saved flags (extend with DataStore if needed)
 function Library:LoadConfiguration() end
-
--- Destroy
-function Library:Destroy()
-    SGui:Destroy()
-end
+function Library:Destroy() SGui:Destroy() end
 
 return Library
